@@ -11,12 +11,14 @@ The goals of this study were to find which countries produced the most; what the
 
 Data for this study was gathered from [Kaggle.com](https://www.kaggle.com/dorbicycle/world-foodfeed-production) and from [WorldBank](https://data.worldbank.org/indicator/SP.POP.TOTL)
 
-•	Area: County (173)
-•	Item: Item produced (117)
-•	Element: Food or Feed (whether the produce was used to feed animals or people
-•	Year: from 1961 to 2013 (52 years)
-•	Production: amount produced
-•	Population: the population of any given country
+```
+Area: County (173)
+Item: Item produced (117)
+Element: Food or Feed (whether the produce was used to feed animals or people
+Year: from 1961 to 2013 (52 years)
+Production: amount produced
+Population: the population of any given country
+```
 
 ### Explanation of the data:
 
