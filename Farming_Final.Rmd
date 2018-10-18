@@ -1,0 +1,694 @@
+---
+title: "Final Project"
+author: "Madeline Ness"
+date: "4/25/2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Import Data
+```{r, include = FALSE}
+setwd("/Users/Madeline/Desktop/DA_101/Final")
+
+FAO = read.csv("FAO.csv")
+WPop = read.csv("World_Pop.csv")
+```
+
+```{r, include = FALSE}
+library(dplyr)
+library(ggplot2)
+library(xtable)
+library(knitr)
+library(car)
+library(leaps)
+library(MASS)
+library(Hmisc)
+library(reshape2)
+```
+
+```{r}
+#CLEANIG UP DATA FOOD PRODUCTION
+
+FAO_1 <- FAO[c(3, 5, 7, 8, 11:63)]
+
+#Viewing list of variables in Area column to see what needs to be changed 
+#levels(FAO_1$Area)
+```
+
+```{r}
+#Melt
+FAO_2 <- melt(FAO_1, id=c("Area", "Item", "Element", "Unit"))
+```
+
+```{r}
+#Rename columns
+colnames(FAO_2)[colnames(FAO_2)=="variable"] <- "Year"
+colnames(FAO_2)[colnames(FAO_2)=="value"] <- "Production"
+```
+
+```{r}
+#Fix Counties by renaming them 
+FAO_2$Area <- sub("Bolivia (Plurinational State of)","Bolivia", FAO_2$Area)
+FAO_2$Area <- sub("China, Hong Kong SAR","Hong Kong SAR, China", FAO_2$Area)
+FAO_2$Area <- sub("China, Macao SAR","Macao SAR, China", FAO_2$Area)
+FAO_2$Area <- sub("China, mainland","China", FAO_2$Area)
+FAO_2$Area <- sub("C\xf4te d'Ivoire","Cote d’Ivoire", FAO_2$Area)
+FAO_2$Area <- sub("Czechia","Czech Republic", FAO_2$Area)
+FAO_2$Area <- sub("Democratic People's Republic of Korea","Korea, Dem. People’s Rep.", FAO_2$Area)
+FAO_2$Area <- sub("Iran (Islamic Republic of)","Iran, Islamic Rep.", FAO_2$Area)
+FAO_2$Area <- sub("Lao People's Democratic Republic","Lao PDR", FAO_2$Area)
+FAO_2$Area <- sub("Republic of Korea","Korea, Rep.", FAO_2$Area)
+FAO_2$Area <- sub("Republic of Moldova","Moldova", FAO_2$Area)
+FAO_2$Area <- sub("Saint Kitts and Nevis","St. Kitts and Nevis", FAO_2$Area)
+FAO_2$Area <- sub("Saint Lucia","St. Lucia", FAO_2$Area)
+FAO_2$Area <- sub("Saint Vincent and the Grenadines","St. Vincent and the Grenadines", FAO_2$Area)
+FAO_2$Area <- sub("The former Yugoslav Republic of Macedonia","Macedonia, FYR", FAO_2$Area)
+FAO_2$Area <- sub("United Republic of Tanzania","Tanzania", FAO_2$Area)
+FAO_2$Area <- sub("United States of America","United States", FAO_2$Area)
+FAO_2$Area <- sub("Venezuela (Bolivarian Republic of)","Venezuela, RB", FAO_2$Area)
+FAO_2$Area <- sub("Viet Nam","Vietnam", FAO_2$Area)
+```
+
+```{r}
+#Delete Taiwan (no population)
+FAO_3 <- FAO_2 %>%
+  filter(Area != "China, Taiwan Province of")
+```
+
+```{r}
+#fix year
+FAO_3$Year <- sub("Y","", FAO_3$Year)
+```
+
+```{r}
+# Clean up WPop like FAO
+WPop_1 <- WPop[c(1, 5:57)]
+```
+
+```{r}
+#Checking the number of countries
+#levels(WPop_1$Country.Name)
+```
+
+```{r}
+#Melt
+WPop_2 <- melt(WPop_1, id=c("Country.Name"))
+```
+
+```{r}
+#Rename columns
+colnames(WPop_2)[colnames(WPop_2)=="Country.Name"] <- "Area"
+colnames(WPop_2)[colnames(WPop_2)=="variable"] <- "Year"
+colnames(WPop_2)[colnames(WPop_2)=="value"] <- "Population"
+```
+
+```{r}
+#FIX Year
+WPop_2$Year <- sub("X","", WPop_2$Year)
+WPop_2$Year <- sub("..YR\\d\\d\\d\\d.","", WPop_2$Year)
+```
+
+```{r}
+# Fix country names
+WPop_2$Area <- sub("Bahamas, The","Bahamas", WPop_2$Area)
+WPop_2$Area <- sub("Gambia, The","Gambia", WPop_2$Area)
+WPop_2$Area <- sub("Kyrgyz Republic","Kyrgyzstan", WPop_2$Area)
+WPop_2$Area <- sub("Congo, Rep.","Congo", WPop_2$Area)
+WPop_2$Area <- sub("Yemen, Rep.","Yemen", WPop_2$Area)
+WPop_2$Area <- sub("Egypt, Arab Rep.","Egypt", WPop_2$Area)
+WPop_2$Area <- sub("Slovak Republic","Slovakia", WPop_2$Area)
+```
+
+```{r}
+#Remove rows from WPop that aren't in FAO and merge
+#Create full dataset with all variables from FAO_3
+POP_PRO <- left_join(FAO_3, WPop_2)
+POP_PRO$Year <- as.numeric(POP_PRO$Year)
+```
+
+```{r}
+#Remove data not being used
+rm(FAO, FAO_1, FAO_2, FAO_3, WPop, WPop_1, WPop_2)
+```
+
+```{r}
+#Find largest producing countries
+
+Pop_Pro_3 <- POP_PRO %>%
+  group_by(Area, Year, Element) %>%
+  summarise(ProByPop = sum(Production/Population), Avg_Production_year = sum(Production)/52, 
+            Tot_Pro = sum(Production), Avg_Pop = sum(Population)/52)
+
+```
+
+
+### 8 Countries all items
+```{r}
+Pop_Pro_AI <- POP_PRO[which(POP_PRO$Area  == "Nigeria" | POP_PRO$Area  == "China" | 
+                            POP_PRO$Area  == "United States" | POP_PRO$Area  == "India" | 
+                            POP_PRO$Area  == "Germany" | POP_PRO$Area  == "Brazil" |
+                            POP_PRO$Area  == "Denmark" | POP_PRO$Area  == "Canada"),]
+
+Pop_Pro_AI_2 <- Pop_Pro_AI %>%
+  group_by(Area, Year, Element, Item)%>%
+  summarise(ProByPop = sum(Production/Population), Avg_Production_year = sum(Production)/52)
+```
+
+```{r}
+Pop_Pro_AI_2 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop, colour = Area)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  facet_wrap(~Element) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Element of Production of Population by Country") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+```{r}
+Pop_Pro_AI_3 <- Pop_Pro_AI %>%
+  group_by(Area, Year)%>%
+  mutate(ProByPop = sum(Production, na.rm=T)/sum(Population, na.rm=T), Avg_Production_year = sum(Production)/52)
+
+Pop_Pro_AI_3 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop)) +
+  geom_line(aes(x=Year, y=ProByPop, colour = Area), size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Production by Population by Year ") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+### 8 items all Countries 
+```{r}
+Pop_Pro_AC <- POP_PRO[which(POP_PRO$Item == "Cereals - Excluding Beer" | 
+                            POP_PRO$Item == "Milk - Excluding Butter" |
+                            POP_PRO$Item == "Vegetables" | 
+                            POP_PRO$Item == "Starchy Roots" | 
+                            POP_PRO$Item == "Maize and products" | 
+                            POP_PRO$Item == "Sweet potatoes" | 
+                            POP_PRO$Item == "Fruits - Excluding Wine" | 
+                            POP_PRO$Item == "Rice (Milled Equivalent)"),]
+
+Pop_Pro_AC_2 <- Pop_Pro_AC %>%
+  group_by(Area, Year, Element, Item)%>%
+  summarise(ProByPop = sum(Production/Population), Avg_Production_year = sum(Production)/52)
+```
+
+```{r}
+Pop_Pro_AC_2 %>%
+  group_by(Item)%>%
+  ggplot(aes(x = Year, y = ProByPop, colour = Item)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  facet_wrap(~Element) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Element of Production of Population by Item") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+```{r}
+Pop_Pro_AC_4 <- Pop_Pro_AC %>%
+  group_by(Item, Year)%>%
+  mutate(ProByPop_Item = sum(Production, na.rm=T)/sum(Population, na.rm=T), Avg_Production_year_item = sum(Production)/52)
+
+Pop_Pro_AC_4 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop_Item, color = Item)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Item Production", 
+       title = "Item Production per Year by Population") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1)) 
+
+```
+###All items All Countries
+```{r}
+str(POP_PRO)
+```
+
+#The 8 and 8 Mainly for graphs
+```{r}
+Pop_Pro_A8 <- POP_PRO[which(POP_PRO$Item == "Cereals - Excluding Beer" | 
+                              POP_PRO$Item == "Milk - Excluding Butter" |
+                            POP_PRO$Item == "Vegetables" | 
+                              POP_PRO$Item == "Starchy Roots" | 
+                            POP_PRO$Item == "Maize and products" | 
+                              POP_PRO$Item == "Sweet potatoes" | 
+                            POP_PRO$Item == "Fruits - Excluding Wine" | 
+                              POP_PRO$Item == "Rice (Milled Equivalent)"),]
+
+Pop_Pro_A8 <- Pop_Pro_A8[which(Pop_Pro_A8$Area  == "Nigeria" | 
+                                 Pop_Pro_A8$Area  == "China" | 
+                            Pop_Pro_A8$Area  == "United States" | 
+                              Pop_Pro_A8$Area  == "India" | 
+                            Pop_Pro_A8$Area  == "Germany" | 
+                              Pop_Pro_A8$Area  == "Brazil" |
+                            Pop_Pro_A8$Area  == "Denmark" | 
+                              Pop_Pro_A8$Area  == "Canada"),]
+```
+
+```{r}
+Pop_Pro_A8 %>% 
+  ggplot(aes(x=Year, y=Production, colour = Item)) + 
+  stat_summary(fun.y = "mean", geom = "line") +
+  facet_wrap(~Area) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) + 
+  labs(x="Year", y="Production (by 1000 tons)", 
+  title="Average Amount of Items Produced by Country", 
+  color="Item") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8 %>% 
+  ggplot(aes(x=Year, y=Production)) + 
+  stat_summary(fun.y = "mean", geom = "line", size = 1) +
+  facet_wrap(~Item) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) + 
+  labs(x="Year", y="Production (by 1000 tons)", 
+  title="Average Amount of Items Produced by Country", 
+  color="Item") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8 %>%
+  ggplot(aes(x = Area, y = Production, colour = "red")) +
+  geom_boxplot(notch=TRUE, outlier.colour="black") +
+  labs(x = "Country", y = "Items produced (by 1000 tons)", 
+       title = "Items Produced by Country from 1961 to 2013") +
+  scale_y_continuous(limits=c(0, 150000)) +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1), legend.position="none")  
+```
+
+```{r}
+Pop_Pro_A8_2 <- Pop_Pro_A8 %>%
+  group_by(Area, Year, Element, Item)%>%
+  summarise(ProByPop = sum(Production/Population), Avg_Production_year = sum(Production)/52)
+```
+
+```{r}
+Pop_Pro_A8_2 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop, colour = Area)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  facet_wrap(~Element) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Element of Production of Population by Country") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8_2 %>%
+  group_by(Item)%>%
+  ggplot(aes(x = Year, y = ProByPop, colour = Item)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) +
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  facet_wrap(~Element) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Element of Production of Population by Item") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+#most produced item
+```{r}
+Pop_Pro_A8_3 <- Pop_Pro_A8 %>%
+  group_by(Area, Year)%>%
+  mutate(ProByPop = sum(Production, na.rm=T)/sum(Population, na.rm=T), Avg_Production_year = sum(Production)/52)
+```
+
+```{r}
+Pop_Pro_A8_4 <- Pop_Pro_A8 %>%
+  group_by(Item, Year)%>%
+  mutate(ProByPop_Item = sum(Production, na.rm=T)/sum(Population, na.rm=T), Avg_Production_year_item = sum(Production)/52)
+```
+
+```{r}
+Pop_Pro_A8_3 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = Production)) +
+  geom_line(aes(x=Year, y=ProByPop, colour = Area), size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Amount Produced by Year", 
+       title = "Production by Population by Year ") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8_3 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop)) +
+  geom_line(aes(x=Year, y=ProByPop, colour = Area), size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Amount Produced by Population", 
+       title = "Production by Population by Year ") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8_2 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop)) +
+  stat_summary(fun.y = "mean", geom = "line", color = "red", size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Average Food Production", 
+       title = "Average Food Production by Population by year") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
+```
+
+```{r}
+Pop_Pro_A8_4 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = Production, color = Item)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Item Production", 
+       title = "Item Production per Year") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1)) 
+
+```
+
+```{r}
+Pop_Pro_A8_4 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = ProByPop_Item, color = Item)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Item Production", 
+       title = "Item Production per Year by Population") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1)) 
+
+```
+
+```{r}
+
+pop_noInCh <- Pop_Pro_A8 %>%
+    filter(Area != "China")
+pop_noInCh <- pop_noInCh %>%
+    filter(Area != "India")
+
+Pop_Pro_A8 %>%
+  group_by(Area)%>%
+  ggplot(aes(x = Year, y = Population, color = Area)) +
+  stat_summary(fun.y = "mean", geom = "line", size = 1) + 
+  scale_x_continuous(breaks=seq(1961, 2013, 10)) +
+  labs(x = "Year", y = "Population", 
+       title = "Population by Year") +
+  theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1)) 
+```
+
+```{r}
+#changing food and feed to 1 and 0
+POP_PRO_F = mutate(POP_PRO, Element_0 = ifelse (Element != "Food" & Element != "Feed", 
+                                         NA_integer_, ifelse(Element == "Food", 1, 0)))
+table(POP_PRO_F$Element_0)
+```
+
+
+
+##Regressions: Linear
+---------------------
+```{r}
+lin.reg0 <- lm(Production ~ Population + Element_0 + Year + Population:Element_0, POP_PRO_F)
+summary(lin.reg0)
+```
+
+All variables are shown to be highly significant but the residuals are not working because it says there is a difference in the size of the dataset between residuals and my original data
+
+# ```{r}
+# Pop_Prod_Res <- cbind(POP_PRO_F, lin.reg0$residuals)
+# 
+# Pop_Prod_Res <- Pop_Prod_Res %>%
+#   rename(res1 = "lin.reg0$residuals")
+# ```
+----------------------
+
+
+##Making Countries and Items into 0 and 1 as well as Element in smaller data set
+```{r}
+#Is country
+Pop_Pro_8_Split = mutate(Pop_Pro_A8, IsChina = ifelse(Area == "China", 1, 0), 
+                        IsNigeria = ifelse(Area == "Nigeria", 1, 0), 
+                        IsUS = ifelse(Area == "United States", 1, 0), 
+                        IsIndia = ifelse(Area == "India", 1, 0), 
+                        IsGermany = ifelse(Area == "Germany", 1, 0), 
+                        IsBrazil = ifelse(Area == "Brazil", 1, 0), 
+                        IsDenmark = ifelse(Area == "Denmark", 1, 0), 
+                        IsCanada = ifelse(Area == "Canada", 1, 0))
+
+#Is Item
+Pop_Pro_8_Split = mutate(Pop_Pro_8_Split, IsCereals = ifelse(Item == "Cereals - Excluding Beer", 1, 0), 
+                        IsMilk = ifelse(Item == "Milk - Excluding Butter", 1, 0), 
+                        IsVegetables = ifelse(Item == "Vegetables", 1, 0), 
+                        IsRoots = ifelse(Item == "Starchy Roots", 1, 0), 
+                        IsMaize = ifelse(Item == "Maize and products", 1, 0), 
+                        IsPotatoes = ifelse(Item == "Sweet potatoes", 1, 0), 
+                        IsFruits = ifelse(Item == "Fruits - Excluding Wine", 1, 0), 
+                        IsRice = ifelse(Item == "Rice (Milled Equivalent)", 1, 0))
+
+#Element Food or Feed 1 or 0
+Pop_Pro_8_Split = mutate(Pop_Pro_8_Split, Element_0 = ifelse (Element != "Food" & Element != "Feed", 
+                                         NA_integer_, ifelse(Element == "Food", 1, 0)))
+table(Pop_Pro_8_Split$Element_0)
+```
+
+```{r}
+lin_reg1 <- lm(Production ~ Population + Element_0 + Year + IsChina + IsNigeria + IsUS + 
+                 IsIndia + IsGermany + IsBrazil + IsDenmark + IsCanada + IsCereals + IsMilk + 
+                 IsVegetables + IsRoots + IsMaize + IsPotatoes + IsFruits + IsRice, Pop_Pro_8_Split)
+summary(lin_reg1)
+```
+
+```{r}
+Correlation_data <- Pop_Pro_8_Split[c(5:24)]
+cor(Correlation_data)
+rm(Correlation_data)
+```
+
+```{r}
+#ones with issues removed and non significant variables and added in interaction term
+lin_reg1.5 <- lm(Production ~ Population + Element_0 + Year + IsChina + IsNigeria + IsUS + 
+                 IsIndia + IsCereals + IsVegetables + IsRoots + IsMaize + IsPotatoes + 
+                 Year:Element_0, Pop_Pro_8_Split)
+summary(lin_reg1.5)
+```
+
+```{r}
+Pop_Prod_Res1 <- cbind(Pop_Pro_8_Split, lin_reg1.5$residuals, lin_reg1.5$fitted.values) %>%
+  rename(fit1 = "lin_reg1.5$fitted.values", res1 = "lin_reg1.5$residuals")
+```
+
+```{r}
+Pop_Prod_Res1 %>%
+  ggplot(aes(res1))+
+  geom_histogram(fill = "pink", color = "blue")
+
+qqnorm(Pop_Prod_Res1$res1)
+
+Pop_Prod_Res1 %>%
+  ggplot(aes(fit1, res1)) +
+  geom_point(color = "darkgreen")
+```
+
+The residuals from the Full data set are highly skewed
+
+```{r}
+Pop_Pro_8_Split_step <- Pop_Pro_8_Split[c(5:24)]
+Pop_Pro_8_Split_step <- na.omit(Pop_Pro_8_Split_step)
+
+#use stepwise
+null <- lm(Production~1, data = Pop_Pro_8_Split_step)
+full <- lm(Production~., data = Pop_Pro_8_Split_step)
+step(null, scope=list(lower=null, upper = full), direction = "forward")
+```
+
+```{r}
+#run the function the stepwise regression gave 
+lin_reg_step <- lm(formula = Production ~ Population + IsCereals + IsUS + Element_0 + 
+    IsIndia + IsChina + IsPotatoes + IsVegetables + IsRoots + 
+    IsNigeria + IsMaize + IsBrazil, data = Pop_Pro_8_Split_step)
+summary(lin_reg_step)
+
+```
+
+```{r}
+#run the function the stepwise regression gave but put back in year since that's an important thing
+#Remove brazil
+lin_reg_stepY <- lm(formula = Production ~ Population + IsCereals + IsUS + Element_0 + 
+    IsIndia + IsChina + IsPotatoes + IsVegetables + IsRoots + 
+    IsNigeria + IsMaize, data = Pop_Pro_8_Split_step)
+summary(lin_reg_stepY)
+```
+
+This is the best model. Even if the Rsqaured is not good that makes sense because there are so many data points and this is a subset of the main data because running this regression on the main data is neigh impossible because there are so many different countries and items.
+
+
+```{r}
+Pop_Prod_Res <- cbind(Pop_Pro_8_Split_step, lin_reg_stepY$residuals, lin_reg_stepY$fitted.values) %>%
+  rename(fit = "lin_reg_stepY$fitted.values", res2 = "lin_reg_stepY$residuals")
+```
+
+```{r}
+Pop_Prod_Res %>%
+  ggplot(aes(res2))+
+  geom_histogram(fill = "pink", color = "blue")
+
+qqnorm(Pop_Prod_Res$res2)
+
+Pop_Prod_Res %>%
+  ggplot(aes(fit, res2)) +
+  geom_point(color = "mediumspringgreen")
+```
+The data is still very skewed so trying to run transformations on the output is a good idea. (possibly on inputs too like population)
+
+```{r}
+#Transformations sqrt Prod and sq Pop
+Pop_Prod_Res2 <- Pop_Pro_8_Split_step %>%
+  mutate(sqrtProd = sqrt(Production), sqPop = Population^2)
+
+lin_reg <- lm(formula = sqrtProd ~ sqPop + IsCereals + IsUS + Element_0 + 
+    IsIndia + IsChina + IsPotatoes + IsVegetables + IsRoots + 
+    IsNigeria + IsMaize, data = Pop_Prod_Res2)
+summary(lin_reg)
+```
+Its not particularily necessary to remove the variables that are not statitically significant because they were significant in the previous model
+
+```{r}
+#remove non statistically significant variables
+lin_reg4 <- lm(formula = sqrtProd ~ sqPop + IsCereals + IsUS + Element_0 + IsChina + IsPotatoes + IsRoots + 
+    IsNigeria, data = Pop_Prod_Res2)
+summary(lin_reg4)
+```
+the Rsquared dropped slightly because of losing 2 variables but not enough to worry about
+
+###Res plots for sqrtProd
+```{r}
+Pop_Prod_Res2 <- cbind(Pop_Pro_8_Split_step, lin_reg4$residuals, lin_reg4$fitted.values) %>%
+  rename(fit.sqrtProd = "lin_reg4$fitted.values", res.sqrtProd = "lin_reg4$residuals")
+
+Pop_Prod_Res2 %>%
+  ggplot(aes(res.sqrtProd))+
+  geom_histogram(color = "yellow", fill = "lightblue")
+
+qqnorm(Pop_Prod_Res2$res.sqrtProd)
+
+Pop_Prod_Res2 %>%
+  ggplot(aes(fit.sqrtProd, res.sqrtProd)) +
+  geom_jitter(color = "orchid1")
+```
+
+###Res plots for the removed values in sqrt
+```{r}
+Pop_Prod_Res2 <- cbind(Pop_Pro_8_Split, lin_reg4$residuals)
+
+Pop_Prod_Res2 <- Pop_Prod_Res2 %>%
+  rename(res4 = "lin_reg4$residuals")
+
+Pop_Prod_Res2 %>%
+  ggplot(aes(res4))+
+  geom_histogram(color = "yellow", fill = "lightblue")
+
+qqnorm(Pop_Prod_Res2$res4)
+
+Pop_Prod_Res %>%
+  ggplot(aes(fit, res2)) +
+  geom_point(color = "mediumspringgreen")
+```
+
+
+```{r}
+#ncvTest
+#ncvTest(lin_reg4)
+
+#Shapiro Test
+#shapiro.test(lin_reg4$residuals) 
+```
+
+#run regression on subset and single variable
+```{r}
+lin.reg0.5 <- lm(Production ~ Population, Pop_Pro_8_Split)
+summary(lin.reg0.5)
+```
+
+```{r}
+Pop_Prod_Res <- cbind(Pop_Pro_8_Split, lin.reg0.5$residuals)
+
+Pop_Prod_Res <- Pop_Prod_Res %>%
+  rename(res1 = "lin.reg0.5$residuals")
+```
+
+```{r}
+Pop_Prod_Res %>%
+  ggplot(aes(res1))+
+  geom_histogram()
+
+qqnorm(Pop_Prod_Res$res1)
+```
+
+```{r}
+Pop_Pro_8_Split <- Pop_Pro_8_Split%>%
+  mutate(sqPop = Population^2, logPop = log(Population), sqrtPop = sqrt(Population))
+
+#lin.reg.sqPop <- lm(Production ~ sqPop, Pop_Pro_8_Split)
+#summary(lin.reg.sqPop)
+
+#lin.reg.logPop <- lm(Production ~ logPop, Pop_Pro_8_Split)
+#summary(lin.reg.logPop)
+
+lin.reg.sqrtPop <- lm(Production ~ sqrtPop, Pop_Pro_8_Split)
+summary(lin.reg.sqrtPop)
+```
+
+###Res plots for sqrtPop
+```{r}
+Pop_Prod_Res <- cbind(Pop_Pro_8_Split, lin.reg.sqrtPop$residuals)
+
+Pop_Prod_Res <- Pop_Prod_Res %>%
+  rename(resid.sqrtPop = "lin.reg.sqrtPop$residuals")
+
+Pop_Prod_Res %>%
+  ggplot(aes(resid.sqrtPop))+
+  geom_histogram()
+
+qqnorm(Pop_Prod_Res$resid.sqrtPop)
+```
+
+All of the transformations for Population did not work so in an attempt to make the residuals better I will add more variables to the regression itself
+
+
+
+```{r}
+#Production vs Residuals
+Pop_Prod_Res %>%
+  ggplot(aes(Population, Production)) +
+  geom_point(colour = "purple3") +
+  geom_smooth(method = "lm")
+```
+
+This data suffers highly from heteroskedacity as well as there appears to be a weird chunk of the data missing
+
+
+```{r}
+Pop_Prod_Res %>%
+  ggplot(aes(Year, Production)) +
+  geom_point(colour = "olivedrab4") +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+Pop_Prod_Res %>%
+  ggplot(aes(Element_0, Production)) +
+  geom_point(colour = "hotpink2") +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+
+```
+
+
+
