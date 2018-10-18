@@ -50,7 +50,7 @@ colnames(FAO_2)[colnames(FAO_2)=="value"] <- "Production"
 ```
 
 ```{r}
-#Fix Counties by renaming them 
+#Fix Counties by renaming them to match both data sets
 FAO_2$Area <- sub("Bolivia (Plurinational State of)","Bolivia", FAO_2$Area)
 FAO_2$Area <- sub("China, Hong Kong SAR","Hong Kong SAR, China", FAO_2$Area)
 FAO_2$Area <- sub("China, Macao SAR","Macao SAR, China", FAO_2$Area)
@@ -79,7 +79,7 @@ FAO_3 <- FAO_2 %>%
 ```
 
 ```{r}
-#fix year
+#fix year from FAO dataset to match World_Pop
 FAO_3$Year <- sub("Y","", FAO_3$Year)
 ```
 
@@ -182,6 +182,10 @@ Pop_Pro_AI_3 %>%
        title = "Production by Population by Year ") +
   theme(text = element_text(size=17), axis.text.x = element_text(angle=90, hjust=1))
 ```
+
+
+
+
 ### 8 items all Countries 
 ```{r}
 Pop_Pro_AC <- POP_PRO[which(POP_PRO$Item == "Cereals - Excluding Beer" | 
@@ -263,7 +267,7 @@ Pop_Pro_A8 %>%
 ```
 
 ```{r}
-Pop_Pro_A8 %>% 
+Pop_Pro_A8 %>%  
   ggplot(aes(x=Year, y=Production)) + 
   stat_summary(fun.y = "mean", geom = "line", size = 1) +
   facet_wrap(~Item) +
@@ -685,10 +689,3 @@ Pop_Prod_Res %>%
   geom_point(colour = "hotpink2") +
   geom_smooth(method = "lm")
 ```
-
-```{r}
-
-```
-
-
-
