@@ -43,3 +43,9 @@ the population for that country in the given year.
 The goal of this project was to find out what factors impact the production of a nation and why certain factors could play more of a role than others. These two datasets were organized by country and by year (in the case of the production it was also organized by item produced). They were then joined by the data in the production dataset, because the production dataset was the one the study was based off of. 
 
 For the ease of graphing the data it was split into several subsets. Because of the large number of countries (174) and items (115) part of the data was then limited and grouped again into some of the highest producing nations (China, United States, Nigeria, India, Germany, Brazil, Denmark, Canada) with all of the possible items and the other part of the data set was grouped by highest produced items (Cereals, Milk, Starchy Roots, Vegetables, Maize, Sweet Potatoes, Fruits, Rice) with all of the countries still using them. Another dataset was made for the ease of regression as a subset that contained both the 8 countries and the 8 items. These variables (items and countries) were then made into Bernoulli variables with 1 meaning they were that item or country and 0 they were not.
+
+### Contributors
+
+```
+Anthony Bonifonte
+```
